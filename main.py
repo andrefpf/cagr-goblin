@@ -14,7 +14,9 @@ TABLE_SEPARATOR = [0, 80, 251, 281, 309, 347, 417, 482, 533, 594]
 def is_close(a, b, *, tolerance=1e-2):
     return abs(a - b) < tolerance
 
-def is_bold(fontname):
+def is_bold(char):
+    fontname = char["fontname"]
+
     if "cairofont-0-0" in fontname.lower():
         return True
     
@@ -23,9 +25,17 @@ def is_bold(fontname):
     
     return False
 
-def is_footnote(fontname):
+def is_italic(char):
+    fontname = char["fontname"]
+    size = round(char["size"])
+
     if "cairofont-2-0" in fontname.lower():
         return True
+    
+    if "oblique" in fontname.lower():
+        return True
+    
+    return False
 
 def remove_header_and_footer(page):
     return page.crop(CONTENT_BOX)
@@ -75,15 +85,15 @@ def split_subject_data(container):
 
     description_split = 0
     for char in container.chars:
-        if is_bold(char["fontname"]):
+        if is_bold(char):
             description_split = char["top"] - 1
             break
-    
+        
     footnote_split = container.bbox[3]
     for char in container.chars:
-        if is_footnote(char["fontname"]):
+        if is_italic(char) and char["top"] > description_split:
             footnote_split = char["top"] - 1
-            break    
+            break
 
     if description_split == 0:
         return None
@@ -116,8 +126,11 @@ def split_subject_data(container):
     if SUBJECT_CODE_REGEX.match(codigo) is None:
         return None
 
-    horas_aula = int(horas_aula) if horas_aula else 0
-    aulas = int(aulas) if aulas else 0
+    try:
+        horas_aula = int(horas_aula) if horas_aula else 0
+        aulas = int(aulas) if aulas else 0
+    except ValueError as e:
+        print("Falha na conversão de horas aula e aulas por semana.", e)
 
     subject_data = dict(
         codigo = codigo,
@@ -146,7 +159,7 @@ def extract_page_data(page):
         size_of_chars = container.chars[0]["size"]
         raw_text = container.extract_text(x_tolerance=2, use_text_flow=False, layout=True)
 
-        if size_of_chars > 12:
+        if round(size_of_chars) == 12:
             page_data.append(raw_text.strip())
         
         elif raw_text.lower().split() == TABLE_HEADER:
@@ -182,12 +195,6 @@ def extract_pages_data(pages):
 
 def convert_pdf_to_json(path_pdf, path_json):
     with pdfplumber.open(path_pdf) as pdf:
-        chars = set()
-        for char in pdf.chars:
-            if char["fontname"] not in chars:
-                chars.add(char["fontname"])
-                print(char["fontname"])
-
         data = extract_pages_data(pdf.pages)
 
     with open(path_json, "w") as file:
@@ -195,8 +202,25 @@ def convert_pdf_to_json(path_pdf, path_json):
 
 def convert_all(origin_dir, target_dir):
     for pdf_path in Path(origin_dir).glob("*.pdf"):
+        print(f"converting {pdf_path.stem}")
+
         json_path = Path(target_dir) / (pdf_path.stem + ".json")
         convert_pdf_to_json(pdf_path, json_path)
 
+        print(f"{pdf_path.stem} converted.")
+        print()
+
 if __name__ == "__main__":
     convert_all("curriculos_pdf", "curriculos_json")
+
+    # print("BIO POR AMOR NÉ MEO")
+    # convert_pdf_to_json("curriculos_pdf/biologia.pdf", "curriculos_json/biologia.json")
+    # print()
+
+    # print("MED POR AMOR NÉ MEO")
+    # convert_pdf_to_json("curriculos_pdf/medicina.pdf", "curriculos_json/medicina.json")
+    # print()
+
+    # print("PSICO POR AMOR NÉ MEO")
+    # convert_pdf_to_json("curriculos_pdf/psicologia.pdf", "curriculos_json/psicologia.json")
+    # print()
