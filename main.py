@@ -1,9 +1,15 @@
 import pdfplumber
+import json
+from collections import defaultdict
+import re
+from pathlib import Path
 
 
+SUBJECT_CODE_REGEX = re.compile("^[A-Z]{3}[0-9]{4}$")
 CONTENT_BOX = (0, 190, 595, 810)
 BOLD_FONTNAME = "EMYDLE+CairoFont-0-0"
 TABLE_HEADER = ["disciplina", "tipo", "h/a", "aulas", "equivalentes", "pré-requisito", "conjunto", "pré", "ch"]
+TABLE_SEPARATOR = [0, 80, 251, 281, 309, 347, 417, 482, 533, 594]
 
 
 def is_close(a, b, *, tolerance=1e-2):
@@ -33,7 +39,7 @@ def split_horizontal_containers(page):
         if a["top"] == b["bottom"]:
             continue
 
-        rect = (a["x0"], a["top"], b["x1"], b["bottom"])
+        rect = (page.bbox[0], a["top"], page.bbox[2], b["bottom"])
         rects.append(rect)
 
     for rect in rects:
@@ -55,50 +61,106 @@ def split_subject_data(container):
 
     '''
 
-    split_position = 0
+    description_split = 0
     for char in container.chars:
         if char["fontname"] == BOLD_FONTNAME:
-            split_position = char["top"] - 2
+            description_split = char["top"] - 2
             break
+    
+    if description_split == 0:
+        return None
 
-    description_container = container.crop((container.bbox[0], container.bbox[1], container.bbox[2], split_position))
+    description_container = container.crop((container.bbox[0], container.bbox[1], container.bbox[2], description_split))
     description_text = description_container.extract_text(x_tolerance=2, use_text_flow=False, layout=True)
     description_text = " ".join(description_text.replace("\n", " ").split())  # removes breaklines and unecessary spaces
 
-    print("descrição: ", description_text)
+    rects = []
+    for a, b in zip(TABLE_SEPARATOR, TABLE_SEPARATOR[1:]):
+        rect = (a, description_split, b, container.bbox[3])
+        rects.append(rect)
+
+    texts = []
+    for rect in rects:
+        item_container = container.crop(rect)
+        item_text = item_container.extract_text(x_tolerance=2, use_text_flow=False, layout=True)
+        item_text = " ".join(item_text.replace("\n", " ").split())  # removes breaklines and unecessary spaces
+        texts.append(item_text)
+
+    (codigo, nome, tipo, horas_aula, aulas, equivalentes, pre_requisito, conjunto, pre_ch) = texts
+
+    # horas_aula = int(horas_aula) if horas_aula else 0
+    # aulas = int(aulas) if aulas else 0
+
+    if SUBJECT_CODE_REGEX.match(codigo) is None:
+        return None
+
+    subject_data = dict(
+        codigo = codigo,
+        nome  = nome,
+        tipo = tipo,
+        horas_aula = horas_aula,
+        aulas = aulas,
+        equivalentes = equivalentes,
+        pre_requisito = pre_requisito,
+        conjunto = conjunto,
+        pre_ch = pre_ch,
+        descricao = description_text,
+    )
+
+    return subject_data
+
+def extract_page_data(page):
+    content = remove_header_and_footer(page)
+    page_data = []
+    
+    for container in split_horizontal_containers(content):
+        if not container.chars:
+            continue
+
+        size_of_chars = container.chars[0]["size"]
+        raw_text = container.extract_text(x_tolerance=2, use_text_flow=False, layout=True)
+
+        if size_of_chars > 12:
+            page_data.append(raw_text.strip())
+        
+        elif raw_text.lower().split() == TABLE_HEADER:
+            continue  # ignoring
+
+        else:
+            subject_data = split_subject_data(container)
+            if subject_data is not None:
+                page_data.append(subject_data)
+
+    return page_data
+
+def extract_pages_data(pages):
+    all_pages_data = []
+    for page in pages:
+        page_data = extract_page_data(page)
+        all_pages_data.extend(page_data)
+
+    ordered_data = defaultdict(list)
+    last_title = "unknown"
+
+    for row_data in all_pages_data:
+        if isinstance(row_data, str):  # titulo
+            last_title = row_data
+
+        elif isinstance(row_data, dict):  # dados da disciplina
+            ordered_data[last_title].append(row_data)
+        
+        else:  # pelo amor de deus como você entrou aqui?
+            raise ValueError("Curriculo inválido!")
+
+    return ordered_data
+
+
 
 
 
 pdf = pdfplumber.open("curriculos/biologia.pdf")
 page = pdf.pages[1]
-content = remove_header_and_footer(page)
 
-for container in split_horizontal_containers(content):
-    size_of_chars = container.chars[0]["size"]
-    raw_text = container.extract_text(x_tolerance=2, use_text_flow=False, layout=True)
-
-    if size_of_chars > 12:
-        type = "header"
-        data = raw_text
-    
-    elif raw_text.lower().split() == TABLE_HEADER:
-        continue  # ignoring
-
-    else:
-        split_subject_data(container)
-        # break
-        # print(raw_text)
-
-
-
-# text = content.extract_text(layout=False, use_text_flow=False)
-
-
-
-
-
-
-# bla = page.search(r"[A-Z]{3}[0-9]{4} [\w -]* (Ob|Op) \d* \d* [A-Z]{3}[0-9]{4}?")
-# print(text)
-# for i in bla:
-#     print(i["text"])
+data = extract_pages_data(pdf.pages)
+with open("curriculo.json", "w") as file:
+    json.dump(data, file, indent=2, ensure_ascii=False)
