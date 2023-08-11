@@ -7,14 +7,25 @@ from pathlib import Path
 
 SUBJECT_CODE_REGEX = re.compile("^[A-Z]{3}[0-9]{4}$")
 CONTENT_BOX = (0, 190, 595, 810)
-BOLD_FONTNAME = "EMYDLE+CairoFont-0-0"
-FOOTNOTE_FONTNAME = "JQPMTE+CairoFont-2-0"
 TABLE_HEADER = ["disciplina", "tipo", "h/a", "aulas", "equivalentes", "pré-requisito", "conjunto", "pré", "ch"]
 TABLE_SEPARATOR = [0, 80, 251, 281, 309, 347, 417, 482, 533, 594]
 
 
 def is_close(a, b, *, tolerance=1e-2):
     return abs(a - b) < tolerance
+
+def is_bold(fontname):
+    if "cairofont-0-0" in fontname.lower():
+        return True
+    
+    if "bold" in fontname.lower():
+        return True
+    
+    return False
+
+def is_footnote(fontname):
+    if "cairofont-2-0" in fontname.lower():
+        return True
 
 def remove_header_and_footer(page):
     return page.crop(CONTENT_BOX)
@@ -64,13 +75,13 @@ def split_subject_data(container):
 
     description_split = 0
     for char in container.chars:
-        if char["fontname"] == BOLD_FONTNAME:
+        if is_bold(char["fontname"]):
             description_split = char["top"] - 1
             break
     
     footnote_split = container.bbox[3]
     for char in container.chars:
-        if char["fontname"] == FOOTNOTE_FONTNAME:
+        if is_footnote(char["fontname"]):
             footnote_split = char["top"] - 1
             break    
 
@@ -80,6 +91,13 @@ def split_subject_data(container):
     description_container = container.crop((container.bbox[0], container.bbox[1], container.bbox[2], description_split))
     description_text = description_container.extract_text(x_tolerance=2, use_text_flow=False, layout=True)
     description_text = " ".join(description_text.replace("\n", " ").split())  # removes breaklines and unecessary spaces
+
+    if footnote_split != container.bbox[3]:
+        footnote_container = container.crop((container.bbox[0], footnote_split, container.bbox[2], container.bbox[3]))
+        footnote_text = footnote_container.extract_text(x_tolerance=2, use_text_flow=False, layout=True)
+        footnote_text = " ".join(footnote_text.replace("\n", " ").split())  # removes breaklines and unecessary spaces
+    else:
+        footnote_text = ""
 
     rects = []
     for a, b in zip(TABLE_SEPARATOR, TABLE_SEPARATOR[1:]):
@@ -112,6 +130,7 @@ def split_subject_data(container):
         conjunto = conjunto,
         pre_ch = pre_ch,
         descricao = description_text,
+        footnote_text = footnote_text,
     )
 
     return subject_data
@@ -161,13 +180,23 @@ def extract_pages_data(pages):
 
     return ordered_data
 
+def convert_pdf_to_json(path_pdf, path_json):
+    with pdfplumber.open(path_pdf) as pdf:
+        chars = set()
+        for char in pdf.chars:
+            if char["fontname"] not in chars:
+                chars.add(char["fontname"])
+                print(char["fontname"])
 
+        data = extract_pages_data(pdf.pages)
 
+    with open(path_json, "w") as file:
+        json.dump(data, file, indent=2, ensure_ascii=False)
 
+def convert_all(origin_dir, target_dir):
+    for pdf_path in Path(origin_dir).glob("*.pdf"):
+        json_path = Path(target_dir) / (pdf_path.stem + ".json")
+        convert_pdf_to_json(pdf_path, json_path)
 
-pdf = pdfplumber.open("curriculos/biologia.pdf")
-page = pdf.pages[1]
-
-data = extract_pages_data(pdf.pages)
-with open("curriculo.json", "w") as file:
-    json.dump(data, file, indent=2, ensure_ascii=False)
+if __name__ == "__main__":
+    convert_all("curriculos_pdf", "curriculos_json")
