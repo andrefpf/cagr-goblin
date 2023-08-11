@@ -8,6 +8,7 @@ from pathlib import Path
 SUBJECT_CODE_REGEX = re.compile("^[A-Z]{3}[0-9]{4}$")
 CONTENT_BOX = (0, 190, 595, 810)
 BOLD_FONTNAME = "EMYDLE+CairoFont-0-0"
+FOOTNOTE_FONTNAME = "JQPMTE+CairoFont-2-0"
 TABLE_HEADER = ["disciplina", "tipo", "h/a", "aulas", "equivalentes", "pré-requisito", "conjunto", "pré", "ch"]
 TABLE_SEPARATOR = [0, 80, 251, 281, 309, 347, 417, 482, 533, 594]
 
@@ -64,9 +65,15 @@ def split_subject_data(container):
     description_split = 0
     for char in container.chars:
         if char["fontname"] == BOLD_FONTNAME:
-            description_split = char["top"] - 2
+            description_split = char["top"] - 1
             break
     
+    footnote_split = container.bbox[3]
+    for char in container.chars:
+        if char["fontname"] == FOOTNOTE_FONTNAME:
+            footnote_split = char["top"] - 1
+            break    
+
     if description_split == 0:
         return None
 
@@ -76,7 +83,7 @@ def split_subject_data(container):
 
     rects = []
     for a, b in zip(TABLE_SEPARATOR, TABLE_SEPARATOR[1:]):
-        rect = (a, description_split, b, container.bbox[3])
+        rect = (a, description_split, b, footnote_split)
         rects.append(rect)
 
     texts = []
@@ -88,11 +95,11 @@ def split_subject_data(container):
 
     (codigo, nome, tipo, horas_aula, aulas, equivalentes, pre_requisito, conjunto, pre_ch) = texts
 
-    # horas_aula = int(horas_aula) if horas_aula else 0
-    # aulas = int(aulas) if aulas else 0
-
     if SUBJECT_CODE_REGEX.match(codigo) is None:
         return None
+
+    horas_aula = int(horas_aula) if horas_aula else 0
+    aulas = int(aulas) if aulas else 0
 
     subject_data = dict(
         codigo = codigo,
