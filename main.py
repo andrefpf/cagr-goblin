@@ -201,10 +201,15 @@ def convert_pdf_to_json(path_pdf, path_json):
         json.dump(data, file, indent=2, ensure_ascii=False)
 
 def convert_all(origin_dir, target_dir):
-    for pdf_path in Path(origin_dir).glob("*.pdf"):
+    origin_dir = Path(origin_dir)
+    target_dir = Path(target_dir)
+
+    target_dir.mkdir(exist_ok=True)
+
+    for pdf_path in origin_dir.glob("*.pdf"):
         print(f"converting {pdf_path.stem}")
 
-        json_path = Path(target_dir) / (pdf_path.stem + ".json")
+        json_path = target_dir / (pdf_path.stem + ".json")
         convert_pdf_to_json(pdf_path, json_path)
 
         print(f"{pdf_path.stem} converted.")
@@ -212,15 +217,3 @@ def convert_all(origin_dir, target_dir):
 
 if __name__ == "__main__":
     convert_all("curriculos_pdf", "curriculos_json")
-
-    # print("BIO POR AMOR NÉ MEO")
-    # convert_pdf_to_json("curriculos_pdf/biologia.pdf", "curriculos_json/biologia.json")
-    # print()
-
-    # print("MED POR AMOR NÉ MEO")
-    # convert_pdf_to_json("curriculos_pdf/medicina.pdf", "curriculos_json/medicina.json")
-    # print()
-
-    # print("PSICO POR AMOR NÉ MEO")
-    # convert_pdf_to_json("curriculos_pdf/psicologia.pdf", "curriculos_json/psicologia.json")
-    # print()
