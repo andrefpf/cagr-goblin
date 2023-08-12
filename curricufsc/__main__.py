@@ -1,4 +1,4 @@
-from curricufsc.utils import convert_all
+from curricufsc.pdf_extractor import convert_all
 
 
 if __name__ == "__main__":
