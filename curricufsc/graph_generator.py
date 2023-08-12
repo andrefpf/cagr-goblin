@@ -84,7 +84,7 @@ class GraphGenerator:
                 for prerequisite in SUBJECT_CODE_REGEX.findall(subject["pre_requisito"]):
                     if prerequisite in all_subjects_code:
                         color = self._get_subject_color(subject["codigo"])
-                        graph.edge(prerequisite, subject["codigo"], color)
+                        graph.edge(prerequisite, subject["codigo"], color=color)
 
     def _get_subject_color(self, subject_code: str):
         department_code = subject_code[:3]
