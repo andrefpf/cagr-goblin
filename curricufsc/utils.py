@@ -214,6 +214,3 @@ def convert_all(origin_dir, target_dir):
 
         print(f"{pdf_path.stem} converted.")
         print()
-
-if __name__ == "__main__":
-    convert_all("curriculos_pdf", "curriculos_json")
