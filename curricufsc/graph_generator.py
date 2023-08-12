@@ -2,6 +2,7 @@ import graphviz
 import json
 import re
 from collections import defaultdict
+from pathlib import Path
 
 
 SUBJECT_CODE_REGEX = re.compile("[A-Z]{3}[0-9]{4}")
@@ -40,7 +41,7 @@ class GraphGenerator:
         # small hack that increments the counter for new values
         self.color_counter = defaultdict(lambda: len(self.color_counter))
 
-    def load_data(self, path):
+    def load_data(self, path: str | Path):
         with open(path) as file:
             curriculum_data = json.load(file)
         return curriculum_data
@@ -58,13 +59,13 @@ class GraphGenerator:
         self._create_connections(graph)
         return graph
     
-    def _create_fase_headers(self, graph):
+    def _create_fase_headers(self, graph: graphviz.Graph):
         with graph.subgraph(name="cluster_header") as cluster:
             all_fases = list(self.curriculum_data.keys())
             for a, b in zip(all_fases, all_fases[1:]):
                 cluster.edge(a, b, style="invis")
 
-    def _create_fase_columns(self, graph):
+    def _create_fase_columns(self, graph: graphviz.Graph):
         for i, subjects in enumerate(self.curriculum_data.values()):
             with graph.subgraph(name=f"cluster_{i}") as cluster:
                 for subject in subjects:
@@ -72,7 +73,7 @@ class GraphGenerator:
                     color = self._get_subject_color(subject_code)
                     cluster.node(subject_code, color=color)
 
-    def _create_connections(self, graph):
+    def _create_connections(self, graph: graphviz.Graph):
         all_subjects_code = set()
         for subjects in self.curriculum_data.values():
             for subject in subjects:
@@ -85,8 +86,8 @@ class GraphGenerator:
                         color = self._get_subject_color(subject["codigo"])
                         graph.edge(prerequisite, subject["codigo"], color)
 
-    def _get_subject_color(self, subject):
-        department_code = subject[:3]
+    def _get_subject_color(self, subject_code: str):
+        department_code = subject_code[:3]
         if department_code not in self.color_counter:
             print(department_code)
         index = self.color_counter[department_code] % len(VALID_COLORS)
