@@ -72,9 +72,10 @@ class GraphGenerator:
                     # do not show optatives
                     if subject["tipo"].lower() != "ob":
                         continue
-
+                    
+                    label = self._get_subject_label(subject)
                     color = self._get_subject_color(subject)
-                    cluster.node(subject["codigo"], color=color)
+                    cluster.node(subject["codigo"], label=label, color=color)
 
     def _force_order(self, graph: graphviz.Graph):
         fases = self.curriculum_data.keys()
@@ -105,6 +106,22 @@ class GraphGenerator:
 
                     color = self._get_subject_color(subject)
                     graph.edge(prerequisite, subject["codigo"], color=color)
+
+    def _get_subject_label(self, subject: dict):
+        # break words into lines
+        subject_parts = []
+        for word in subject["nome"].split():
+            if not subject_parts:
+                subject_parts.append(word)
+                continue
+            if len(subject_parts[-1]) + len(word) < 15:
+                subject_parts[-1] += " " + word
+            else:
+                subject_parts.append(word)
+        subject_name = "\n".join(subject_parts)
+
+        subject_code = subject["codigo"]
+        return subject_code + "\n\n" + subject_name
 
     def _get_subject_color(self, subject: str):
         tcc_words = ["tcc", "trabalho de conclusão de curso", "projeto de conclusão de curso"]
