@@ -16,6 +16,8 @@ LAYOUT = '''
     // direction of graph layout is left to right
     rankdir=LR
 
+    ordering=out
+
     // edges route around nodes with polygonal chains
     splines=ortho
 
@@ -37,6 +39,7 @@ LAYOUT = '''
 class GraphGenerator:
     def __init__(self, path):
         self.curriculum_data = self.load_data(path)
+        self._remove_undesired_fases()
 
         # small hack that increments the counter for new values
         self.color_counter = defaultdict(lambda: len(self.color_counter))
@@ -44,7 +47,7 @@ class GraphGenerator:
     def load_data(self, path: str | Path):
         with open(path) as file:
             curriculum_data = json.load(file)
-        return curriculum_data
+        return dict(curriculum_data)
     
     def generate_graph(self) -> graphviz.Digraph:
         graph = graphviz.Digraph("grafo_materias")
@@ -57,36 +60,53 @@ class GraphGenerator:
             self._create_columns(cluster)
         
         self._create_connections(graph)
+        self._force_order(graph)
         return graph
     
+    def _remove_undesired_fases(self):
+        '''
+        Keep only regurar obrigatory subjects
+        '''
+
+        undesired_keys = []
+        for key in self.curriculum_data.keys():
+            if "fase" not in key.lower():
+                undesired_keys.append(key)
+
+            elif "optativa" in key.lower():
+                undesired_keys.append(key)
+
+        for key in undesired_keys:
+            self.curriculum_data.pop(key)
+
     def _create_headers(self, graph: graphviz.Graph):
         with graph.subgraph(name="cluster_header") as cluster:
-            all_fases = [i for i in self.curriculum_data.keys() if "fase" in i.lower()]
+            all_fases = [i for i in self.curriculum_data.keys()]
             for a, b in zip(all_fases, all_fases[1:]):
                 cluster.edge(a, b, style="invis")
 
     def _create_columns(self, graph: graphviz.Graph):
         for i, subjects in enumerate(self.curriculum_data.values()):
             with graph.subgraph(name=f"cluster_{i}") as cluster:
-                for subject in subjects:
-                    # do not show optatives
-                    if subject["tipo"].lower() != "ob":
-                        continue
-                    
+                for subject in subjects:                    
                     label = self._get_subject_label(subject)
                     color = self._get_subject_color(subject)
                     cluster.node(subject["codigo"], label=label, color=color)
 
-    def _force_order(self, graph: graphviz.Graph):
-        fases = self.curriculum_data.keys()
-        subject_by_fase = list(self.curriculum_data.values())
-        for fase, subjects in zip(fases, subject_by_fase[1:]):
-            for subject in subjects:
-                graph.edge(fase, subject["codigo"], style="invis")
-
     def _create_info_block(self, graph: graphviz.Graph):
         with graph.subgraph(name="cluster_info") as cluster:
             cluster.node("info")
+
+    def _force_order(self, graph: graphviz.Graph):
+        last_fase_code = ""
+        for subjects in self.curriculum_data.values():
+            for subject in subjects:
+                code = subject["codigo"]
+                if not last_fase_code:
+                    last_fase_code = code
+                    break
+                graph.edge(last_fase_code, code, style="invis")
+            last_fase_code = code
 
     def _create_connections(self, graph: graphviz.Graph):
         all_subjects_code = set()
@@ -96,10 +116,6 @@ class GraphGenerator:
 
         for subjects in self.curriculum_data.values():
             for subject in subjects:
-                # do not show optatives
-                if subject["tipo"].lower() != "ob":
-                    continue
-
                 for prerequisite in SUBJECT_CODE_REGEX.findall(subject["pre_requisito"]):
                     if prerequisite not in all_subjects_code:
                         continue
