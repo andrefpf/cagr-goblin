@@ -113,8 +113,6 @@ class GraphGenerator:
                 return "4"  # red color for tcc
 
         department_code = subject["codigo"][:3]
-        if department_code not in self.color_counter:
-            print(department_code)
         index = self.color_counter[department_code] % len(VALID_COLORS)
         return VALID_COLORS[index]
 
