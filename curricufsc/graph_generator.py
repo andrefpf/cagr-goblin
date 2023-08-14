@@ -1,9 +1,9 @@
-import graphviz
 import json
 import re
 from collections import defaultdict
 from pathlib import Path
 
+import graphviz
 
 SUBJECT_CODE_REGEX = re.compile("[A-Z]{3}[0-9]{4}")
 
@@ -12,7 +12,7 @@ SUBJECT_CODE_REGEX = re.compile("[A-Z]{3}[0-9]{4}")
 VALID_COLORS = ["1", "5", "6", "2", "4"]
 
 
-LAYOUT = '''
+LAYOUT = """
     // direction of graph layout is left to right
     rankdir=LR
 
@@ -33,7 +33,7 @@ LAYOUT = '''
     // set global style for edges
     edge [style=bold colorscheme=set36 arrowsize=.5 arrowhead=tee]
 
-'''
+"""
 
 
 class GraphGenerator:
@@ -48,7 +48,7 @@ class GraphGenerator:
         with open(path) as file:
             curriculum_data = json.load(file)
         return dict(curriculum_data)
-    
+
     def generate_graph(self) -> graphviz.Digraph:
         graph = graphviz.Digraph("grafo_materias")
         graph.body.append(LAYOUT)
@@ -58,15 +58,15 @@ class GraphGenerator:
             cluster.attr(color="#00000000")
             self._create_headers(cluster)
             self._create_columns(cluster)
-        
+
         self._create_connections(graph)
         self._force_order(graph)
         return graph
-    
+
     def _remove_undesired_fases(self):
-        '''
+        """
         Keep only regurar obrigatory subjects
-        '''
+        """
 
         undesired_keys = []
         for key in self.curriculum_data.keys():
@@ -88,7 +88,7 @@ class GraphGenerator:
     def _create_columns(self, graph: graphviz.Graph):
         for i, subjects in enumerate(self.curriculum_data.values()):
             with graph.subgraph(name=f"cluster_{i}") as cluster:
-                for subject in subjects:                    
+                for subject in subjects:
                     label = self._get_subject_label(subject)
                     color = self._get_subject_color(subject)
                     cluster.node(subject["codigo"], label=label, color=color)
@@ -116,7 +116,9 @@ class GraphGenerator:
 
         for subjects in self.curriculum_data.values():
             for subject in subjects:
-                for prerequisite in SUBJECT_CODE_REGEX.findall(subject["pre_requisito"]):
+                for prerequisite in SUBJECT_CODE_REGEX.findall(
+                    subject["pre_requisito"]
+                ):
                     if prerequisite not in all_subjects_code:
                         continue
 
@@ -140,7 +142,11 @@ class GraphGenerator:
         return subject_code + "\n\n" + subject_name
 
     def _get_subject_color(self, subject: str):
-        tcc_words = ["tcc", "trabalho de conclusão de curso", "projeto de conclusão de curso"]
+        tcc_words = [
+            "tcc",
+            "trabalho de conclusão de curso",
+            "projeto de conclusão de curso",
+        ]
         for word in tcc_words:
             if word in subject["nome"].lower():
                 return "4"  # red color for tcc

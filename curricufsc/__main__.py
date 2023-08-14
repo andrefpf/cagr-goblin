@@ -1,6 +1,5 @@
-from curricufsc.pdf_extractor import PdfExtractor
 from curricufsc.graph_generator import GraphGenerator
-
+from curricufsc.pdf_extractor import PdfExtractor
 
 if __name__ == "__main__":
     curso = "ciencia_computacao"
