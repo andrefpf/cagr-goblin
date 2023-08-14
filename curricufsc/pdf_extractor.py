@@ -69,8 +69,8 @@ class PdfExtractor:
         for line in page.lines:
             if line["height"] != 0:
                 continue
-            
-            if not round(line["x0"]) == 20:
+
+            if not (20 <= round(line["x0"]) <= 21):
                 continue
             
             separation_lines.append(line)
@@ -122,7 +122,6 @@ class PdfExtractor:
         
         subject_data["horas_aula"] = int(subject_data["horas_aula"]) if subject_data["horas_aula"] else 0
         subject_data["aulas"] = int(subject_data["aulas"]) if subject_data["aulas"] else 0
-
 
         if footnote_split == chunk.bbox[3]:    
             subject_data["nota_rodape"] = ""

@@ -148,9 +148,3 @@ class GraphGenerator:
         department_code = subject["codigo"][:3]
         index = self.color_counter[department_code] % len(VALID_COLORS)
         return VALID_COLORS[index]
-
-
-if __name__ == "__main__":
-    gg = GraphGenerator("data/curriculos_json/ciencia_computacao.json")
-    graph = gg.generate_graph()
-    graph.view(cleanup=True)
