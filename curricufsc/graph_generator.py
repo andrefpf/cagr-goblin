@@ -146,6 +146,7 @@ class GraphGenerator:
             "tcc",
             "trabalho de conclusão de curso",
             "projeto de conclusão de curso",
+            "trabalho de curso",
         ]
         for word in tcc_words:
             if word in subject["nome"].lower():
