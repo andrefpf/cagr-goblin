@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 SUBJECT_CODE_REGEX = re.compile("^[A-Z]{3}[0-9]{4}$")
-CONTENT_BOX = (0, 190, 595, 812)
+CONTENT_BOX = (0, 188, 595, 812)
 TABLE_HEADER = ["disciplina", "tipo", "h/a", "aulas", "equivalentes", "pré-requisito", "conjunto", "pré", "ch"]
 TABLE_SEPARATOR = [0, 80, 251, 281, 309, 347, 417, 482, 533, 594]
 
