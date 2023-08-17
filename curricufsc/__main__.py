@@ -10,3 +10,5 @@ if __name__ == "__main__":
     generator = GraphGenerator(f"data/curriculos_json/{curso}.json")
     graph = generator.generate_graph()
     graph.view(cleanup=True)
+
+    graph.render("bla", cleanup=True, format="svg")

@@ -91,7 +91,8 @@ class GraphGenerator:
                 for subject in subjects:
                     label = self._get_subject_label(subject)
                     color = self._get_subject_color(subject)
-                    cluster.node(subject["codigo"], label=label, color=color)
+                    tooltip = subject["descricao"]
+                    cluster.node(subject["codigo"], label=label, color=color, tooltip=tooltip)
 
     def _create_info_block(self, graph: graphviz.Graph):
         with graph.subgraph(name="cluster_info") as cluster:
