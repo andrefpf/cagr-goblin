@@ -23,11 +23,11 @@ TABLE_SEPARATOR = [0, 80, 251, 281, 309, 347, 417, 482, 533, 594]
 
 
 class PdfExtractor:
-    def __init__(self, path):
-        self.extracted_data = self.load_pdf(path)
+    def __init__(self, pdf_bytes):
+        self.extracted_data = self.load_pdf(pdf_bytes)
 
-    def load_pdf(self, path):
-        with pdfplumber.open(path) as pdf:
+    def load_pdf(self, pdf_bytes):
+        with pdfplumber.open(pdf_bytes) as pdf:
             data = self._extract_pages_data(pdf.pages)
         return data
 
