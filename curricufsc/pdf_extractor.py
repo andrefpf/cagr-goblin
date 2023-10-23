@@ -7,6 +7,9 @@ from pathlib import Path
 import pdfplumber
 
 SUBJECT_CODE_REGEX = re.compile("^[A-Z]{3}[0-9]{4}$")
+FIND_COURSE_NAME = re.compile(r"(?<=Curso:).*", re.IGNORECASE)
+FIND_CURRICULUM_NUMBER = re.compile(r"(?<=Currículo:).*", re.IGNORECASE)
+
 CONTENT_BOX = (0, 188, 595, 812)
 TABLE_HEADER = [
     "disciplina",
@@ -28,12 +31,27 @@ class PdfExtractor:
 
     def load_pdf(self, pdf_bytes):
         with pdfplumber.open(pdf_bytes) as pdf:
-            data = self._extract_pages_data(pdf.pages)
+            data = self.extract_data(pdf)
         return data
 
     def write_json(self, path):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
         with open(path, "w") as file:
             json.dump(self.extracted_data, file, indent=2, ensure_ascii=False)
+
+    def extract_data(self, pdf):
+        data = self._extract_first_page_data(pdf.pages[0])
+        data["dados_curriculo"] = self._extract_pages_data(pdf.pages[1:])
+        return data
+
+    def _extract_first_page_data(self, page):
+        page_text = page.extract_text()
+        return dict(
+            curso = FIND_COURSE_NAME.search(page_text).group().strip(),
+            versao_curriculo = FIND_CURRICULUM_NUMBER.search(page_text).group().strip()
+        )
 
     def _extract_pages_data(self, pages):
         extracted_data = defaultdict(list)

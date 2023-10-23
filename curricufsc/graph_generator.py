@@ -47,7 +47,7 @@ class GraphGenerator:
     def load_data(self, path: str | Path):
         with open(path) as file:
             curriculum_data = json.load(file)
-        return dict(curriculum_data)
+        return curriculum_data["dados_curriculo"]
 
     def generate_graph(self) -> graphviz.Digraph:
         graph = graphviz.Digraph("grafo_materias")
