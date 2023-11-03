@@ -1,6 +1,7 @@
 import json
 import re
 from collections import defaultdict
+from io import BytesIO
 from itertools import pairwise
 from pathlib import Path
 
@@ -30,7 +31,7 @@ class PdfExtractor:
         self.extracted_data = self.load_pdf(pdf_bytes)
 
     def load_pdf(self, pdf_bytes):
-        with pdfplumber.open(pdf_bytes) as pdf:
+        with pdfplumber.open(BytesIO(pdf_bytes)) as pdf:
             data = self.extract_data(pdf)
         return data
 

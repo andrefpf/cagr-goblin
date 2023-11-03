@@ -1,2 +1,5 @@
 __pycache__/
+.idea/
 *.json
+data/
+poetry.lock

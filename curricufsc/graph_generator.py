@@ -37,16 +37,14 @@ LAYOUT = """
 
 
 class GraphGenerator:
-    def __init__(self, path):
-        self.curriculum_data = self.load_data(path)
+    def __init__(self, curriculum_data):
+        self.curriculum_data = self.load_data(curriculum_data)
         self._remove_undesired_fases()
 
         # small hack that increments the counter for new values
         self.color_counter = defaultdict(lambda: len(self.color_counter))
 
-    def load_data(self, path: str | Path):
-        with open(path) as file:
-            curriculum_data = json.load(file)
+    def load_data(self, curriculum_data):
         return curriculum_data["dados_curriculo"]
 
     def generate_graph(self) -> graphviz.Digraph:
