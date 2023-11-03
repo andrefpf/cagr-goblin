@@ -9,8 +9,8 @@ import requests
 if __name__ == "__main__":
     curso = "ciencia_computacao"
     endpoint = "https://cagr.sistemas.ufsc.br/relatorios/curriculoCurso"
-    START = 999
-    END = 5000
+    START = 0
+    END = 999
     dataset = []
     try:
         for i in range(START, END):
